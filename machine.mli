@@ -1,15 +1,17 @@
 type state   = string
-type rule    = state * Tape.symbol * state * Tape.symbol * Tape.direction
+type rule    = { current_state  : state;
+                 current_symbol : Tape.symbol;
+                 new_state      : state;
+                 new_symbol     : Tape.symbol;
+                 direction      : Tape.direction }
 type machine
 
-exception Converged
-exception Deadlock
+exception Halted
+exception Diverged
 
 val create : rule list -> state -> state -> Tape.symbol list -> machine
 
 val step : machine -> machine
-
-val run : machine -> machine
 
 val state : machine -> state
 

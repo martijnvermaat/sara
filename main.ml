@@ -248,7 +248,6 @@ let turing program start_state stop_state tape =
   let steps = ref 0 in
 
   let area_expose _ =
-    print_endline "ja";
     draw_tape (Machine.tape !machine) window#tape;
     false
   in
@@ -260,14 +259,22 @@ let turing program start_state stop_state tape =
       window#steps#set_label (string_of_int !steps);
       GtkBase.Widget.queue_draw window#tape#as_widget
     with
-      | Machine.Deadlock -> print_endline "Reached a deadlock"
+      | Machine.Diverged -> print_endline "Reached a deadlock"
+      | Machine.Halted   -> print_endline "Halted"
   in
   let run _ =
     try
-      machine := Machine.run !machine;
-      GtkBase.Widget.queue_draw window#tape#as_widget
+      while true do
+        machine := Machine.step !machine;
+        steps := !steps + 1;
+      done
     with
-      | Machine.Deadlock -> print_endline "Reached a deadlock"
+      | Machine.Diverged -> print_endline "Reached a deadlock"
+      | Machine.Halted   ->
+          print_endline "Halted";
+          window#state#set_label (Machine.state !machine);
+          window#steps#set_label (string_of_int !steps);
+          GtkBase.Widget.queue_draw window#tape#as_widget
   in
   let load_program _ =
     let file_chooser = GWindow.file_chooser_dialog

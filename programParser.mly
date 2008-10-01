@@ -7,7 +7,7 @@ main:
   expr EOL { $1 }
 ;
 expr:
-  state symbol state symbol direction { ($1, $2, $3, $4, $5) }
+  state symbol state symbol direction { { Machine.current_state=$1; Machine.current_symbol=$2; Machine.new_state=$3; Machine.new_symbol=$4; Machine.direction=$5 } }
 ;
 state:
   ID { $1 }
