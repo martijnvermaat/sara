@@ -2,7 +2,7 @@ OCAMLMAKEFILE = /usr/share/ocamlmakefile/OCamlMakefile
 
 LAYOUT = layout.glade
 MODEL = tape.mli tape.ml machine.mli machine.ml
-UTIL = programParser.mly programLexer.mll util.ml
+UTIL = programParser.mly programLexer.mll util.ml ui.ml
 MAIN = main.ml
 
 SOURCES = $(LAYOUT) $(MODEL) $(UTIL) $(MAIN)

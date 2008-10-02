@@ -4,49 +4,17 @@
 
 
 (*
-  Print ASCII representation of the machine on stdout.
-
-  TODO: vertical printing
-  TODO: graphical printing (e.g. with cairo)
+  Parse a string containing a two states and a list of rules.
+  TODO: Check that rules don't overlap
 *)
-let show machine =
-  let state = Machine.state machine
-  and (before, symbol, after) = Machine.tape machine
-  and print_symbol = function
-    | None   -> print_string " "
-    | Some s -> print_int s
-  in
-  print_string ("s " ^ (String.make (String.length state) ' '));
-  List.iter print_symbol before;
-  print_symbol symbol;
-  List.iter print_symbol after;
-  print_endline "";
-  print_string state;
-  print_string ("  " ^ (String.make (List.length before) ' ') ^ "^");
-  print_endline (String.make (List.length after) ' ')
-
-
-(*
-  Parse a file containing a list of rules.
-*)
-let parse_program file =
-  let rec parse_rule lexbuf line =
-    try
-      let rule = ProgramParser.main ProgramLexer.token lexbuf in
-      (parse_rule lexbuf (line + 1))@ [rule]
-    with
-      | Parsing.Parse_error ->
-          let e = "Error parsing program `" ^ file ^ "' (line "
-            ^ (string_of_int line) ^ ")"
-          in
-          raise (Failure e)
-      | ProgramLexer.Eof ->
-          []
-    in
+let parse_program string =
   try
-    parse_rule (Lexing.from_channel (open_in file)) 1
+    ProgramParser.main ProgramLexer.token (Lexing.from_string string)
   with
-    | Sys_error e -> raise (Failure ("Error: " ^ e))
+    | Parsing.Parse_error ->
+        raise (Failure "Could not parse program")
+    | ProgramLexer.Eof ->
+        raise (Failure "Empty program definition")
 
 
 (*
