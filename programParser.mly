@@ -1,17 +1,17 @@
 %token <string> ID
 %token EOL EOF
 %start main
-%type <(Machine.rule list * Machine.state * Machine.state)> main
+%type <Program.rule list * Program.state * Program.state> main
 %%
 main:
-  state state EOL expr_list EOF { ( $4, $1, $2 ) }
+  state state EOL rule_list EOF { ( $4, $1, $2 ) }
 ;
-expr_list:
+rule_list:
                        { [] }
-  | expr_list expr EOL { $2 :: $1 }
+  | rule_list rule EOL { $2 :: $1 }
 ;
-expr:
-  state symbol state symbol direction { { Machine.current_state=$1; Machine.current_symbol=$2; Machine.new_state=$3; Machine.new_symbol=$4; Machine.direction=$5 } }
+rule:
+  state symbol state symbol direction { ( ($1, $2), ($3, $4, $5) ) }
 ;
 state:
   ID { $1 }

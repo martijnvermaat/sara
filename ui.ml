@@ -12,6 +12,12 @@ let pi = 4. *. atan 1.
 *)
 let draw_tape tape (area : GMisc.drawing_area) =
 
+  (* TODO: clean up *)
+  let tape = match tape with
+    | None   -> [], None, []
+    | Some t -> t
+  in
+
   (*
     The current height of [area] is used. We horizontally resize [area] if we
     need more space.
@@ -221,71 +227,113 @@ let draw_tape tape (area : GMisc.drawing_area) =
   Cairo.show_text ctx s
 
 
-let show_program file_name source_buffer =
-  let channel = open_in file_name in
+(* TODO: exceptions *)
+let read_file file =
+  let channel = open_in file in
   let size = in_channel_length channel in
   let buffer = String.create size in
   really_input channel buffer 0 size;
   close_in channel;
-  source_buffer#set_text buffer
+  buffer
 
 
-let main program_file tape_string =
+let create_program_view packing =
+  let buffer = GSourceView.source_buffer () in
+  let view = GSourceView.source_view
+    ~source_buffer:source_buffer ~packing ()
+  in
+  view#misc#modify_font_by_name "Monospace";
+  view
 
-  (* Read program file as string *)
-  let channel = open_in program_file in
-  let size = in_channel_length channel in
-  let program_string = String.create size in
-  really_input channel program_string 0 size;
-  close_in channel;
 
-  let rules, initial_state, halting_state = Util.parse_program program_string
-  and tape = Util.parse_tape tape_string
+let main ?program_file ?(tape_string="") () =
+
+  let window = new Widgets.main_window ()
+  and tape_view = window#tape
+  and program_view = create_program_view window#program_scroller#add
+  and tape = ref None
+  and program_state = ref None
+  and steps = ref 0
   in
 
-  let machine = ref (Machine.create rules initial_state halting_state tape) in
+  let load_program () =
+    program_state :=
+      try
+        let program = Program.parse program_view#source_buffer#text in
+        Some (program, Program.initial_state program)
+      with
+        | Failure _ -> None
 
-  let window = new Layout.main_window () in
+  and load_tape string =
+    tape :=
+      try
+        Some (Tape.parse string)
+      with
+        | Failure _ -> None
 
-  let source_buffer = GSourceView.source_buffer ~text:program_string () in
-  let source_view = GSourceView.source_view
-    ~source_buffer:source_buffer
-    ~packing:window#program_scroller#add () in
+  and update_ui () =
+    window#state#set_label
+      begin match !program_state with
+        | Some (_, state) -> state
+        | None            -> "No state"
+      end;
+    window#steps#set_label (string_of_int !steps);
+    GtkBase.Widget.queue_draw window#tape#as_widget
 
-  source_view#misc#modify_font_by_name "Monospace";
-
-  let steps = ref 0 in
-
-  let area_expose _ =
-    draw_tape (Machine.tape !machine) window#tape;
+  and tape_view_expose _ =
+    draw_tape (!tape) tape_view;
     false
-  in
-  let step _ =
-    try
-      machine := Machine.step !machine;
-      steps := !steps + 1;
-      window#state#set_label (Machine.state !machine);
-      window#steps#set_label (string_of_int !steps);
-      GtkBase.Widget.queue_draw window#tape#as_widget
-    with
-      | Machine.Diverged -> print_endline "Reached a deadlock"
-      | Machine.Halted   -> print_endline "Halted"
-  in
-  let run _ =
-    try
-      while true do
-        machine := Machine.step !machine;
-        steps := !steps + 1;
-      done
-    with
-      | Machine.Diverged -> print_endline "Reached a deadlock"
-      | Machine.Halted   ->
-          print_endline "Halted";
-          window#state#set_label (Machine.state !machine);
-          window#steps#set_label (string_of_int !steps);
-          GtkBase.Widget.queue_draw window#tape#as_widget
-  in
-  let load_program _ =
+
+  and step _ =
+    match !tape, !program_state with
+      | Some tape', Some (program, state) ->
+          begin try
+            let new_state, symbol, direction =
+              Program.step program (state, Tape.read tape')
+            in
+            let new_tape = Tape.step tape' symbol direction
+            in
+            tape := Some new_tape;
+            program_state := Some (program, new_state);
+            incr(steps);
+            update_ui ()
+          with
+            | Machine.Diverged -> print_endline "Reached a deadlock"
+            | Machine.Halted   -> print_endline "Halted"
+          end
+      | _ ->
+          print_endline "No tape or program loaded"
+
+  and run _ =
+    (*
+    match !tape, !program_state with
+      | Some tape', Some (program, state) ->
+          begin try
+            while true do
+              let new_state, symbol, direction =
+                Program.step program (state, Tape.read tape')
+              in
+              let new_tape = Tape.step tape' symbol direction
+              in
+              tape := Some new_tape;
+              program_state := Some (program, new_state);
+              incr(steps);
+
+              machine := Machine.step !machine;
+              steps := !steps + 1;
+            done
+          with
+            | Machine.Diverged -> print_endline "Reached a deadlock"
+            | Machine.Halted   ->
+                print_endline "Halted";
+                window#state#set_label (Machine.state !machine);
+                window#steps#set_label (string_of_int !steps);
+                GtkBase.Widget.queue_draw window#tape#as_widget
+    *)
+    ()
+
+  and load_program _ =
+    (*
     let file_chooser = GWindow.file_chooser_dialog
       ~action:`OPEN
       ~parent:window#toplevel
@@ -303,15 +351,26 @@ let main program_file tape_string =
       | `DELETE_EVENT | `CANCEL -> ()
     end ;
     file_chooser#destroy ()
+    *)
+    ()
   in
 
-  ignore (window#tape#event#connect#expose area_expose);
+  ignore (window#tape#event#connect#expose program_view_expose);
   ignore (window#button_open#connect#clicked load_program);
   ignore (window#button_step#connect#clicked step);
   ignore (window#button_run#connect#clicked run);
 
   ignore (window#toplevel#connect#destroy GMain.quit);
   ignore (window#toplevel#event#connect#delete (fun _ -> GMain.quit (); true));
+
+  begin match program_file with
+    | None -> ()
+    | Some file ->
+        program_view#source_buffer#set_text (read_file file)
+  end;
+
+  load_program ();
+  load_tape tape_string;
 
   window#toplevel#show ();
   GMain.Main.main ()

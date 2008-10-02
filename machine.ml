@@ -3,24 +3,7 @@
 *)
 
 
-type state   = string
-type rule    = { current_state  : state;
-                 current_symbol : Tape.symbol;
-                 new_state      : state;
-                 new_symbol     : Tape.symbol;
-                 direction      : Tape.direction }
-
-module ConfigurationMap = Map.Make(struct
-                            type t = state * Tape.symbol
-                            let compare = compare
-                          end)
-
-type rules = (state * Tape.symbol * Tape.direction) ConfigurationMap.t
-
-type machine = { rules         : rules;
-                 state         : state;
-                 halting_state : state;
-                 tape          : Tape.tape }
+type machine = Program.program * Tape.tape * Program.state
 
 exception Halted
 exception Diverged

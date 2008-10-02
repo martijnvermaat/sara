@@ -30,7 +30,7 @@ let empty = PositionMap.empty, 0
 (*
   Update symbol at reading head position and move the reading head.
 *)
-let step symbol direction tape =
+let step tape symbol direction =
   let cells, position = tape in
   let new_cells =
     match symbol with
@@ -45,11 +45,25 @@ let step symbol direction tape =
 
 
 (*
-  Tape constructed from symbols with reading head on first symbol.
+  Tape constructed from string with reading head on first symbol.
 *)
-let create symbols =
-  let f tape symbol = step symbol Right tape in
-  let cells, _ = (List.fold_left f empty symbols) in
+let parse string =
+  let rec symbols s =
+    try
+      let head = match String.sub s 0 1 with
+        | " " -> None
+        | c   -> Some (int_of_string c)
+      and tail = String.sub string 1 ((String.length s) - 1)
+      in
+      head :: (symbols tail)
+    with
+      | Invalid_argument _ -> []
+      | Failure _          ->
+          let e = "Only digits and blanks are allowed on the tape" in
+          raise (Failure e)
+  in
+  let f tape symbol = step tape symbol Right in
+  let cells, _ = (List.fold_left f empty (symbols string)) in
   cells, 0
 
 
