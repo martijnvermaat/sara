@@ -1,11 +1,10 @@
 OCAMLMAKEFILE = /usr/share/ocamlmakefile/OCamlMakefile
 
 LAYOUT = widgets.glade
-MODEL = tape.mli tape.ml program.mli program.ml
-UTIL = programParser.mly programLexer.mll ui.ml
+INCLUDE = tape.mli tape.ml programParser.mly programLexer.mll program.mli program.ml ui.ml
 MAIN = main.ml
 
-SOURCES = $(LAYOUT) $(MODEL) $(UTIL) $(MAIN)
+SOURCES = $(LAYOUT) $(INCLUDE) $(MAIN)
 RESULT = sara
 INCDIRS = +cairo +lablgtk2
 CLIBS = mlcairo

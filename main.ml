@@ -5,24 +5,22 @@
 
 let main () =
 
-  let arg_program_file  = ref None
-  and arg_tape_string   = ref None
+  let program  = ref None
+  and tape     = ref ""
   in
 
   let arguments = Arg.align
-    [("-p", Arg.String (fun a -> arg_program_file := Some a),
-      " Program (required)")]
-  and description = "./turing -p program tape"
+    [("-p", Arg.String (fun a -> program := Some a),
+      " Program")]
+  and description = "./turing [-p program] [tape]"
   in
 
-  Arg.parse arguments (fun a -> arg_tape_string := Some a) description;
+  Arg.parse arguments (fun a -> tape := a) description;
 
-  match !arg_program_file, !arg_tape_string with
-    | Some program_file, Some tape_string ->
-        Ui.main program_file tape_string
-    | _ ->
-        Arg.usage arguments description;
-        exit 1
+  let tape_string = !tape in
+  match !program with
+    | Some program_file -> Ui.main ~program_file ~tape_string ()
+    | None              -> Ui.main ~tape_string ()
 
 
 (*

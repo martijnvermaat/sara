@@ -39,6 +39,14 @@ let parse string =
 
 
 (*
+  Program's initial state.
+*)
+let initial_state program =
+  let _, state, _ = program in
+  state
+
+
+(*
   Apply one rule.
 *)
 let step program configuration =

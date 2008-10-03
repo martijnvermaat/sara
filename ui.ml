@@ -15,7 +15,7 @@ let draw_tape tape (area : GMisc.drawing_area) =
   (* TODO: clean up *)
   let tape = match tape with
     | None   -> [], None, []
-    | Some t -> t
+    | Some t -> Tape.contents t
   in
 
   (*
@@ -240,7 +240,7 @@ let read_file file =
 let create_program_view packing =
   let buffer = GSourceView.source_buffer () in
   let view = GSourceView.source_view
-    ~source_buffer:source_buffer ~packing ()
+    ~source_buffer:buffer ~packing ()
   in
   view#misc#modify_font_by_name "Monospace";
   view
@@ -248,8 +248,8 @@ let create_program_view packing =
 
 let main ?program_file ?(tape_string="") () =
 
-  let window = new Widgets.main_window ()
-  and tape_view = window#tape
+  let window = new Widgets.main_window () in
+  let tape_view = window#tape
   and program_view = create_program_view window#program_scroller#add
   and tape = ref None
   and program_state = ref None
@@ -259,7 +259,9 @@ let main ?program_file ?(tape_string="") () =
   let load_program () =
     program_state :=
       try
-        let program = Program.parse program_view#source_buffer#text in
+        let program =
+          Program.parse (program_view#source_buffer#get_text ())
+        in
         Some (program, Program.initial_state program)
       with
         | Failure _ -> None
@@ -283,8 +285,9 @@ let main ?program_file ?(tape_string="") () =
   and tape_view_expose _ =
     draw_tape (!tape) tape_view;
     false
+  in
 
-  and step _ =
+  let step _ =
     match !tape, !program_state with
       | Some tape', Some (program, state) ->
           begin try
@@ -298,8 +301,8 @@ let main ?program_file ?(tape_string="") () =
             incr(steps);
             update_ui ()
           with
-            | Machine.Diverged -> print_endline "Reached a deadlock"
-            | Machine.Halted   -> print_endline "Halted"
+            | Program.Diverged -> print_endline "Reached a deadlock"
+            | Program.Halted   -> print_endline "Halted"
           end
       | _ ->
           print_endline "No tape or program loaded"
@@ -332,7 +335,7 @@ let main ?program_file ?(tape_string="") () =
     *)
     ()
 
-  and load_program _ =
+  and open_program _ =
     (*
     let file_chooser = GWindow.file_chooser_dialog
       ~action:`OPEN
@@ -355,8 +358,8 @@ let main ?program_file ?(tape_string="") () =
     ()
   in
 
-  ignore (window#tape#event#connect#expose program_view_expose);
-  ignore (window#button_open#connect#clicked load_program);
+  ignore (window#tape#event#connect#expose tape_view_expose);
+  ignore (window#button_open#connect#clicked open_program);
   ignore (window#button_step#connect#clicked step);
   ignore (window#button_run#connect#clicked run);
 
