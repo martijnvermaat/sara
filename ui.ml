@@ -252,28 +252,47 @@ let main ?program_file ?(tape_string="") () =
   let tape_view = window#tape
   and program_view = create_program_view window#program_scroller#add
   and tape = ref None
+  and saved_tape_string = ref ""
   and program_state = ref None
   and steps = ref 0
   in
 
   let update_ui () =
-    window#state#set_label
-      begin match !program_state with
-        | Some (_, state) -> state
-        | None            -> "No state"
-      end;
+    begin match !program_state with
+      | None ->
+          window#button_step#misc#set_sensitive false;
+          window#button_run#misc#set_sensitive false;
+          window#button_reset#misc#set_sensitive false;
+          window#state#set_label "No state"
+      | Some (_, state) ->
+          window#button_step#misc#set_sensitive true;
+          window#button_run#misc#set_sensitive true;
+          window#button_reset#misc#set_sensitive true;
+          window#state#set_label state
+    end;
     window#steps#set_label (string_of_int !steps);
     GtkBase.Widget.queue_draw window#tape#as_widget
+
+  and apply_program_activation value =
+    window#button_apply_program#misc#set_sensitive value
   in
 
   (* TODO: errors *)
   let load_program () =
+    let old_program_state = !program_state
+    in
     program_state := begin
       try
         let program =
           Program.parse (program_view#source_buffer#get_text ())
         in
-        Some (program, Program.initial_state program)
+        apply_program_activation false;
+        match old_program_state with
+          | None ->
+              steps := 0;
+              Some (program, Program.initial_state program)
+          | Some (_, state) ->
+              Some (program, state)
       with
         | Failure _ -> None
     end;
@@ -281,11 +300,24 @@ let main ?program_file ?(tape_string="") () =
 
   (* TODO: errors *)
   and load_tape string =
-    tape := begin
-      try
-        Some (Tape.parse string)
-      with
-        | Failure _ -> None
+    begin try
+      tape := Some (Tape.parse string);
+      saved_tape_string := string
+    with
+      | Failure _ -> ()
+    end;
+    update_ui ()
+  in
+
+  (* TODO: reset buttons only visible if there is a program loaded *)
+  let reset_program () =
+    begin match !program_state with
+      | None -> ()
+      | Some (program, state) ->
+          steps := 0;
+          program_state := Some (program, Program.initial_state program);
+          load_tape !saved_tape_string;
+          window#tape_text#set_text !saved_tape_string (* TODO: do this or not? *)
     end;
     update_ui ()
 
@@ -356,7 +388,8 @@ let main ?program_file ?(tape_string="") () =
           begin match file_chooser#filename with
             | Some s ->
                 program_view#source_buffer#set_text (read_file s);
-                load_program ()
+                load_program ();
+                reset_program ();
             | None   -> ()
           end
       | `DELETE_EVENT | `CANCEL -> ()
@@ -364,21 +397,28 @@ let main ?program_file ?(tape_string="") () =
     file_chooser#destroy ()
 
   and edit_tape _ =
-    match GToolbox.input_string ~title:"Enter tape" ~ok:"Load tape" ~text:"" "string" with
-      | None      -> ()
-      | Some tape ->
-          load_tape tape;
-          load_program ()
+    load_tape window#tape_text#text;
+    load_program ()
   in
 
   ignore (window#tape#event#connect#expose tape_view_expose);
-  ignore (window#button_open_program#connect#clicked open_program);
+  ignore (window#menu_open_program#connect#activate open_program);
   ignore (window#button_edit_tape#connect#clicked edit_tape);
+  ignore (window#button_apply_program#connect#clicked load_program);
+  ignore (window#button_reset#connect#clicked reset_program);
   ignore (window#button_step#connect#clicked step);
   ignore (window#button_run#connect#clicked run);
 
   ignore (window#toplevel#connect#destroy GMain.quit);
+  ignore (window#menu_quit#connect#activate GMain.quit);
   ignore (window#toplevel#event#connect#delete (fun _ -> GMain.quit (); true));
+
+  ignore (program_view#source_buffer#connect#changed (fun _ -> apply_program_activation true));
+
+  let font = Pango.Font.from_string "Monospace" in
+  window#tape_text#misc#modify_font font;
+
+  apply_program_activation false;
 
   begin match program_file with
     | None      -> ()
@@ -388,6 +428,7 @@ let main ?program_file ?(tape_string="") () =
 
   load_program ();
   load_tape tape_string;
+  window#tape_text#set_text tape_string;
 
   window#toplevel#show ();
   GMain.Main.main ()
