@@ -256,24 +256,7 @@ let main ?program_file ?(tape_string="") () =
   and steps = ref 0
   in
 
-  let load_program () =
-    program_state :=
-      try
-        let program =
-          Program.parse (program_view#source_buffer#get_text ())
-        in
-        Some (program, Program.initial_state program)
-      with
-        | Failure _ -> None
-
-  and load_tape string =
-    tape :=
-      try
-        Some (Tape.parse string)
-      with
-        | Failure _ -> None
-
-  and update_ui () =
+  let update_ui () =
     window#state#set_label
       begin match !program_state with
         | Some (_, state) -> state
@@ -281,6 +264,30 @@ let main ?program_file ?(tape_string="") () =
       end;
     window#steps#set_label (string_of_int !steps);
     GtkBase.Widget.queue_draw window#tape#as_widget
+  in
+
+  (* TODO: errors *)
+  let load_program () =
+    program_state := begin
+      try
+        let program =
+          Program.parse (program_view#source_buffer#get_text ())
+        in
+        Some (program, Program.initial_state program)
+      with
+        | Failure _ -> None
+    end;
+    update_ui ()
+
+  (* TODO: errors *)
+  and load_tape string =
+    tape := begin
+      try
+        Some (Tape.parse string)
+      with
+        | Failure _ -> None
+    end;
+    update_ui ()
 
   and tape_view_expose _ =
     draw_tape (!tape) tape_view;
@@ -336,7 +343,6 @@ let main ?program_file ?(tape_string="") () =
     ()
 
   and open_program _ =
-    (*
     let file_chooser = GWindow.file_chooser_dialog
       ~action:`OPEN
       ~parent:window#toplevel
@@ -348,18 +354,26 @@ let main ?program_file ?(tape_string="") () =
     begin match file_chooser#run () with
       | `OPEN ->
           begin match file_chooser#filename with
-            | Some s -> show_program s source_buffer
+            | Some s ->
+                program_view#source_buffer#set_text (read_file s);
+                load_program ()
             | None   -> ()
           end
       | `DELETE_EVENT | `CANCEL -> ()
     end ;
     file_chooser#destroy ()
-    *)
-    ()
+
+  and edit_tape _ =
+    match GToolbox.input_string ~title:"Enter tape" ~ok:"Load tape" ~text:"" "string" with
+      | None      -> ()
+      | Some tape ->
+          load_tape tape;
+          load_program ()
   in
 
   ignore (window#tape#event#connect#expose tape_view_expose);
-  ignore (window#button_open#connect#clicked open_program);
+  ignore (window#button_open_program#connect#clicked open_program);
+  ignore (window#button_edit_tape#connect#clicked edit_tape);
   ignore (window#button_step#connect#clicked step);
   ignore (window#button_run#connect#clicked run);
 
@@ -367,7 +381,7 @@ let main ?program_file ?(tape_string="") () =
   ignore (window#toplevel#event#connect#delete (fun _ -> GMain.quit (); true));
 
   begin match program_file with
-    | None -> ()
+    | None      -> ()
     | Some file ->
         program_view#source_buffer#set_text (read_file file)
   end;
