@@ -251,6 +251,7 @@ let main ?program_file ?(tape_string="") () =
   let window = new Widgets.main_window () in
   let tape_view = window#tape
   and program_view = create_program_view window#program_scroller#add
+  and status_context = window#status#new_context ""
   and tape = ref None
   and saved_tape_string = ref ""
   and program_state = ref None
@@ -273,6 +274,9 @@ let main ?program_file ?(tape_string="") () =
     window#steps#set_label (string_of_int !steps);
     GtkBase.Widget.queue_draw window#tape#as_widget
 
+  and status_message string =
+    status_context#flash ~delay:3000 string
+
   and apply_program_activation value =
     window#button_apply_program#misc#set_sensitive value
   in
@@ -287,6 +291,7 @@ let main ?program_file ?(tape_string="") () =
           Program.parse (program_view#source_buffer#get_text ())
         in
         apply_program_activation false;
+        status_message "Program loaded";
         match old_program_state with
           | None ->
               steps := 0;
@@ -302,14 +307,14 @@ let main ?program_file ?(tape_string="") () =
   and load_tape string =
     begin try
       tape := Some (Tape.parse string);
-      saved_tape_string := string
+      saved_tape_string := string;
+      status_message "Tape loaded"
     with
       | Failure _ -> ()
     end;
     update_ui ()
   in
 
-  (* TODO: reset buttons only visible if there is a program loaded *)
   let reset_program () =
     begin match !program_state with
       | None -> ()
@@ -319,6 +324,7 @@ let main ?program_file ?(tape_string="") () =
           load_tape !saved_tape_string;
           window#tape_text#set_text !saved_tape_string (* TODO: do this or not? *)
     end;
+    status_message "Program reset to initial state";
     update_ui ()
 
   and tape_view_expose _ =
@@ -338,13 +344,14 @@ let main ?program_file ?(tape_string="") () =
             tape := Some new_tape;
             program_state := Some (program, new_state);
             incr(steps);
+            status_message "Program executed one step";
             update_ui ()
           with
-            | Program.Diverged -> print_endline "Reached a deadlock"
-            | Program.Halted   -> print_endline "Halted"
+            | Program.Diverged -> status_message "Program diverged"
+            | Program.Halted   -> status_message "Program halted"
           end
       | _ ->
-          print_endline "No tape or program loaded"
+          status_message "No tape or program loaded"
 
   and run _ =
     (*
@@ -390,6 +397,7 @@ let main ?program_file ?(tape_string="") () =
                 program_view#source_buffer#set_text (read_file s);
                 load_program ();
                 reset_program ();
+                status_message ("Opened program " ^ s);
             | None   -> ()
           end
       | `DELETE_EVENT | `CANCEL -> ()
@@ -397,8 +405,8 @@ let main ?program_file ?(tape_string="") () =
     file_chooser#destroy ()
 
   and edit_tape _ =
-    load_tape window#tape_text#text;
-    load_program ()
+    load_program ();
+    load_tape window#tape_text#text
   in
 
   ignore (window#tape#event#connect#expose tape_view_expose);
@@ -426,8 +434,8 @@ let main ?program_file ?(tape_string="") () =
         program_view#source_buffer#set_text (read_file file)
   end;
 
-  load_program ();
   load_tape tape_string;
+  load_program ();
   window#tape_text#set_text tape_string;
 
   window#toplevel#show ();
