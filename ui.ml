@@ -345,41 +345,19 @@ let main ?program_file ?(tape_string="") () =
             program_state := Some (program, new_state);
             incr(steps);
             status_message "Program executed one step";
-            update_ui ()
+            update_ui ();
+            true
           with
-            | Program.Diverged -> status_message "Program diverged"
-            | Program.Halted   -> status_message "Program halted"
+            | Program.Diverged -> status_message "Program diverged"; false
+            | Program.Halted   -> status_message "Program halted"; false
           end
       | _ ->
-          status_message "No tape or program loaded"
+          status_message "No tape or program loaded";
+          false
+  in
 
-  and run _ =
-    (*
-    match !tape, !program_state with
-      | Some tape', Some (program, state) ->
-          begin try
-            while true do
-              let new_state, symbol, direction =
-                Program.step program (state, Tape.read tape')
-              in
-              let new_tape = Tape.step tape' symbol direction
-              in
-              tape := Some new_tape;
-              program_state := Some (program, new_state);
-              incr(steps);
-
-              machine := Machine.step !machine;
-              steps := !steps + 1;
-            done
-          with
-            | Machine.Diverged -> print_endline "Reached a deadlock"
-            | Machine.Halted   ->
-                print_endline "Halted";
-                window#state#set_label (Machine.state !machine);
-                window#steps#set_label (string_of_int !steps);
-                GtkBase.Widget.queue_draw window#tape#as_widget
-    *)
-    ()
+  let run _ =
+    ignore (GMain.Timeout.add ~ms:300 ~callback:step)
 
   and open_program _ =
     let file_chooser = GWindow.file_chooser_dialog
@@ -414,7 +392,7 @@ let main ?program_file ?(tape_string="") () =
   ignore (window#button_edit_tape#connect#clicked edit_tape);
   ignore (window#button_apply_program#connect#clicked load_program);
   ignore (window#button_reset#connect#clicked reset_program);
-  ignore (window#button_step#connect#clicked step);
+  ignore (window#button_step#connect#clicked (fun _ -> ignore (step ())));
   ignore (window#button_run#connect#clicked run);
 
   ignore (window#toplevel#connect#destroy GMain.quit);
