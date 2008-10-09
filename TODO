@@ -13,3 +13,4 @@ Tape only extending to the right
 make[1]: Circulaire afhankelijkheid program.cmx <- programParser.cmx is verworpen.
 make[1]: Circulaire afhankelijkheid programLexer.cmx <- programParser.cmx is verworpen.
 Tooltips or other help message explaining exact actions after clicking a button
+Show last executed rule
