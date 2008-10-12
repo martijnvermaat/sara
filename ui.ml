@@ -264,12 +264,12 @@ let main ?program_file ?(tape_string="") () =
           window#button_step#misc#set_sensitive false;
           window#button_run#misc#set_sensitive false;
           window#button_reset#misc#set_sensitive false;
-          window#state#set_label "No state"
+          window#current_state#set_text "No state"
       | Some (_, state) ->
           window#button_step#misc#set_sensitive true;
           window#button_run#misc#set_sensitive true;
           window#button_reset#misc#set_sensitive true;
-          window#state#set_label state
+          window#current_state#set_text state
     end;
     window#steps#set_label (string_of_int !steps);
     GtkBase.Widget.queue_draw window#tape#as_widget
@@ -287,9 +287,11 @@ let main ?program_file ?(tape_string="") () =
     in
     program_state := begin
       try
-        let program =
-          Program.parse (program_view#source_buffer#get_text ())
+        let text = window#initial_state#text
+          ^ " " ^ window#halting_state#text
+          ^ "\n" ^ (program_view#source_buffer#get_text ())
         in
+        let program = Program.parse text in
         apply_program_activation false;
         status_message "Program loaded";
         match old_program_state with
@@ -356,6 +358,15 @@ let main ?program_file ?(tape_string="") () =
           false
   in
 
+  let load_program_text program =
+    let rules, initial_state, halting_state =
+      Program.pretty_print (Program.parse program)
+    in
+    window#initial_state#set_text initial_state;
+    window#halting_state#set_text halting_state;
+    program_view#source_buffer#set_text rules
+  in
+
   let run _ =
     ignore (GMain.Timeout.add ~ms:300 ~callback:step)
 
@@ -372,7 +383,7 @@ let main ?program_file ?(tape_string="") () =
       | `OPEN ->
           begin match file_chooser#filename with
             | Some s ->
-                program_view#source_buffer#set_text (read_file s);
+                load_program_text (read_file s);
                 load_program ();
                 reset_program ();
                 status_message ("Opened program " ^ s);
@@ -399,6 +410,9 @@ let main ?program_file ?(tape_string="") () =
   ignore (window#menu_quit#connect#activate GMain.quit);
   ignore (window#toplevel#event#connect#delete (fun _ -> GMain.quit (); true));
 
+  ignore (window#current_state#connect#changed (fun _ -> apply_program_activation true));
+  ignore (window#initial_state#connect#changed (fun _ -> apply_program_activation true));
+  ignore (window#initial_state#connect#changed (fun _ -> apply_program_activation true));
   ignore (program_view#source_buffer#connect#changed (fun _ -> apply_program_activation true));
 
   let font = Pango.Font.from_string "Monospace" in
@@ -408,8 +422,7 @@ let main ?program_file ?(tape_string="") () =
 
   begin match program_file with
     | None      -> ()
-    | Some file ->
-        program_view#source_buffer#set_text (read_file file)
+    | Some file -> load_program_text (read_file file)
   end;
 
   load_tape tape_string;

@@ -7,6 +7,8 @@ type program
 exception Halted
 exception Diverged
 
-val parse         : string -> program
-val initial_state : program -> state
-val step          : program -> configuration -> action
+val parse             : string -> program
+val pretty_print_rule : rule -> string
+val pretty_print      : program -> string * string * string
+val initial_state     : program -> state
+val step              : program -> configuration -> action

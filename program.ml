@@ -39,6 +39,30 @@ let parse string =
 
 
 (*
+  Pretty print rule to string.
+*)
+let pretty_print_rule rule =
+  let (state, symbol), (state', symbol', direction) = rule in
+  state
+  ^ " " ^ (Tape.pretty_print_symbol symbol)
+  ^ " " ^ state'
+  ^ " " ^ (Tape.pretty_print_symbol symbol')
+  ^ " " ^ (Tape.pretty_print_direction direction)
+
+
+(*
+  Pretty print program to strings.
+*)
+let pretty_print program =
+  let rules, initial_state, halting_state = program
+  and f configuration action rules =
+    pretty_print_rule (configuration, action)
+    ^ "\n" ^ rules
+  in
+  (ConfigurationMap.fold f rules ""), initial_state, halting_state
+
+
+(*
   Program's initial state.
 *)
 let initial_state program =

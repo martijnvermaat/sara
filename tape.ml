@@ -52,6 +52,7 @@ let parse string =
     try
       let head = match String.sub s 0 1 with
         | " " -> None
+        | "B" -> None
         | c   -> Some (int_of_string c)
       and tail = String.sub string 1 ((String.length s) - 1)
       in
@@ -65,6 +66,24 @@ let parse string =
   let f tape symbol = step tape symbol Right in
   let cells, _ = (List.fold_left f empty (symbols string)) in
   cells, 0
+
+
+(*
+  Pretty print symbol to string.
+*)
+let pretty_print_symbol symbol =
+  match symbol with
+    | None   -> "B"
+    | Some i -> string_of_int i
+
+
+(*
+  Pretty print direction to string.
+*)
+let pretty_print_direction direction =
+  match direction with
+    | Left  -> "l"
+    | Right -> "r"
 
 
 (*
