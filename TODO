@@ -1,16 +1,11 @@
-Hashtable of rules
-Records instead of tuples
 String representations of datatypes
 Useful assertions printing info including data as string
 Use extlib
-Show rules (and highlight matching and last used)
-Show number of steps, current state
-Allow edit of rules
+Highlight matching and last used rule
 Save edited rules
-Fix drawing code
-Store start and stop states in program file
 Tape only extending to the right
 make[1]: Circulaire afhankelijkheid program.cmx <- programParser.cmx is verworpen.
 make[1]: Circulaire afhankelijkheid programLexer.cmx <- programParser.cmx is verworpen.
 Tooltips or other help message explaining exact actions after clicking a button
-Show last executed rule
+Icon
+Debian package

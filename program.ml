@@ -21,12 +21,19 @@ exception Diverged
 
 
 (*
+  Create program from rule list, initial state and halting state.
+*)
+let create rules initial_state halting_state =
+  rules, initial_state, halting_state
+
+
+(*
   Create program from string.
 *)
 let parse string =
   let rules, initial_state, halting_state =
     try
-      ProgramParser.main ProgramLexer.token (Lexing.from_string string)
+      ProgramParser.program ProgramLexer.token (Lexing.from_string string)
     with
       | Parsing.Parse_error ->
           raise (Failure "Could not parse program")
@@ -36,6 +43,24 @@ let parse string =
     ConfigurationMap.add configuration action rules
   in
   List.fold_left f ConfigurationMap.empty rules, initial_state, halting_state
+
+
+(*
+  Create list of rules from string.
+*)
+let parse_rules string =
+  let rules =
+    try
+      ProgramParser.rules ProgramLexer.token (Lexing.from_string string)
+    with
+      | Parsing.Parse_error ->
+          raise (Failure "Could not parse rules")
+      | ProgramLexer.Eof ->
+          raise (Failure "No rules")
+  and f rules (configuration, action) =
+    ConfigurationMap.add configuration action rules
+  in
+  List.fold_left f ConfigurationMap.empty rules
 
 
 (*

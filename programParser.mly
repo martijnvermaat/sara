@@ -1,14 +1,15 @@
 %token <string> ID
 %token EOL EOF
-%start main
-%type <Program.rule list * Program.state * Program.state> main
+%start program rules
+%type <Program.rule list * Program.state * Program.state> program
+%type <Program.rule list> rules
 %%
-main:
-  state state EOL rule_list EOF { ( $4, $1, $2 ) }
+program:
+  state state EOL rules EOF { ( $4, $1, $2 ) }
 ;
-rule_list:
-                       { [] }
-  | rule_list rule EOL { $2 :: $1 }
+rules:
+                   { [] }
+  | rules rule EOL { $2 :: $1 }
 ;
 rule:
   state symbol state symbol direction { ( ($1, $2), ($3, $4, $5) ) }

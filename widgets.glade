@@ -395,7 +395,7 @@
           </packing>
         </child>
         <child>
-          <widget class="GtkScrolledWindow" id="program_scroller">
+          <widget class="GtkScrolledWindow" id="rules_scroller">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>

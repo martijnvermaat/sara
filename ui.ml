@@ -237,7 +237,7 @@ let read_file file =
   buffer
 
 
-let create_program_view packing =
+let create_rules_view packing =
   let buffer = GSourceView.source_buffer () in
   let view = GSourceView.source_view
     ~source_buffer:buffer ~packing ()
@@ -250,7 +250,7 @@ let main ?program_file ?(tape_string="") () =
 
   let window = new Widgets.main_window () in
   let tape_view = window#tape
-  and program_view = create_program_view window#program_scroller#add
+  and rules_view = create_rules_view window#rules_scroller#add
   and status_context = window#status#new_context ""
   and tape = ref None
   and saved_tape_string = ref ""
@@ -287,19 +287,17 @@ let main ?program_file ?(tape_string="") () =
     in
     program_state := begin
       try
-        let text = window#initial_state#text
-          ^ " " ^ window#halting_state#text
-          ^ "\n" ^ (program_view#source_buffer#get_text ())
-        in
-        let program = Program.parse text in
+        let initial_state = window#initial_state#text
+        and halting_state = window#halting_state#text
+        and rules = Program.parse_rules (rules_view#source_buffer#get_text ()) in
         apply_program_activation false;
         status_message "Program loaded";
         match old_program_state with
           | None ->
               steps := 0;
-              Some (program, Program.initial_state program)
+              Some ((Program.create rules initial_state halting_state), initial_state)
           | Some (_, state) ->
-              Some (program, state)
+              Some ((Program.create rules initial_state halting_state), state)
       with
         | Failure _ -> None
     end;
@@ -364,7 +362,7 @@ let main ?program_file ?(tape_string="") () =
     in
     window#initial_state#set_text initial_state;
     window#halting_state#set_text halting_state;
-    program_view#source_buffer#set_text rules
+    rules_view#source_buffer#set_text rules
   in
 
   let run _ =
@@ -413,7 +411,7 @@ let main ?program_file ?(tape_string="") () =
   ignore (window#current_state#connect#changed (fun _ -> apply_program_activation true));
   ignore (window#initial_state#connect#changed (fun _ -> apply_program_activation true));
   ignore (window#initial_state#connect#changed (fun _ -> apply_program_activation true));
-  ignore (program_view#source_buffer#connect#changed (fun _ -> apply_program_activation true));
+  ignore (rules_view#source_buffer#connect#changed (fun _ -> apply_program_activation true));
 
   let font = Pango.Font.from_string "Monospace" in
   window#tape_text#misc#modify_font font;
