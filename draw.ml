@@ -12,12 +12,6 @@ let pi = 4. *. atan 1.
 *)
 let draw_tape tape (area : GMisc.drawing_area) =
 
-  (* TODO: clean up *)
-  let tape = match tape with
-    | None   -> [], None, []
-    | Some t -> Tape.contents t
-  in
-
   (*
     The current height of [area] is used. We horizontally resize [area] if we
     need more space.

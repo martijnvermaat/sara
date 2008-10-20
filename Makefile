@@ -1,7 +1,7 @@
 OCAMLMAKEFILE = /usr/share/ocamlmakefile/OCamlMakefile
 
 LAYOUT = widgets.glade
-INCLUDE = tape.mli tape.ml programParser.mly programLexer.mll program.mli program.ml draw.ml ui.ml
+INCLUDE = tape.mli tape.ml programParser.mly programLexer.mll program.mli program.ml draw.ml graphical.ml
 MAIN = main.ml
 
 SOURCES = $(LAYOUT) $(INCLUDE) $(MAIN)
