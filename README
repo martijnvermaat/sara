@@ -1,0 +1,13 @@
+Dependencies:
+  ocaml
+  liblablgtk2-ocaml
+  libcairo-ocaml
+  liblablgtksourceview-ocaml
+
+Build-dependencies:
+  ocaml
+  ocamlmakefile
+  liblablgtk2-ocaml-dev
+  libcairo-ocaml-dev
+  liblablgtksourceview-ocaml-dev
+  ocaml-findlib
