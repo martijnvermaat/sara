@@ -22,7 +22,11 @@ class program interface = object (self : 'self)
     try
       let r = Program.parse_rules rules in
       program <- Some (Program.create r initial_state halting_state);
-      state <- Some initial_state
+      match state with
+        | None ->
+            state <- Some initial_state;
+            interface#on_state_changed initial_state
+        | _ -> ()
     with
       | Failure _ -> ()
 
@@ -38,7 +42,9 @@ class program interface = object (self : 'self)
     try
       let p = Program.parse (read_file file) in
       program <- Some p;
-      state <- Some (Program.initial_state p)
+      state <- Some (Program.initial_state p);
+      interface#on_program_file_loaded (Program.pretty_print p);
+      interface#on_state_changed (Program.initial_state p)
     with
       | Failure _ -> ()
 
@@ -61,8 +67,8 @@ class program interface = object (self : 'self)
           end
       | _ -> () (*status_message "No tape or program loaded"*)
 
-  method run =
-    ignore interface#run
+  method main =
+    ignore interface#main
 
   initializer
     (*interface#connect_load_tape self#load_tape;
@@ -93,7 +99,7 @@ let main () =
     | Some program_file -> p#load_program_file program_file
     | None              -> ()
   end;
-  p#run
+  p#main
 
 
 (*

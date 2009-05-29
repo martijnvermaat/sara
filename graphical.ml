@@ -21,12 +21,21 @@ class interface = object (self : 'self)
   method on_state_changed state =
     self#current_state#set_text state
 
-  method run =
+  method on_program_file_loaded program =
+    let rules, initial_state, halting_state = program in
+    self#rules#source_buffer#set_text rules;
+    self#initial_state#set_text initial_state;
+    self#halting_state#set_text halting_state
+
+  method main =
     self#toplevel#show ();
     GMain.Main.main ()
 
   method connect_step step =
     ignore (self#button_step#connect#clicked (fun _ -> step ()))
+
+  method connect_run run =
+    ignore (self#button_run#connect#clicked (fun _ -> run ()))
 
   initializer
     self#rules_scroller#add self#rules#coerce;
@@ -38,7 +47,6 @@ class interface = object (self : 'self)
   ignore (self#button_edit_tape#connect#clicked edit_tape);
   ignore (self#button_apply_program#connect#clicked load_program);
   ignore (self#button_reset#connect#clicked reset_program);
-  ignore (self#button_step#connect#clicked (fun _ -> ignore (step ())));
   ignore (self#button_run#connect#clicked run);*)
 
     ignore (self#toplevel#connect#destroy GMain.quit);
